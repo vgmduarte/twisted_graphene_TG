@@ -276,6 +276,24 @@ def eigenenergies_sparse(Hk,nbands,Ef):
 
 
 
+def eigenstates(Hk):
+    """
+    Calculates eigenstates, for small matrices.
+    """
+    return linalg.eigh(Hk,eigvals_only=False)
+
+
+
+def eigenstates_sparse(Hk,nbands,Ef):
+    """
+    Calculates eigenstates, for big sparse matrices (scipy.sparse).
+    """
+    e=sparse_linalg.eigsh(Hk,k=nbands,sigma=Ef,return_eigenvectors=True)
+    e.sort()
+    return e
+
+
+
 def kticks(pts_per_line_segment):
     """
     K-point path index ticks for plots (might be better understood by seeing the code for band structure plots in other scripts).
@@ -325,14 +343,64 @@ def bands(H,gamma):
 
 def bands_sparse(H,gamma,nbands,Ef):
     """
-    Electronic bands, for big matrices
+    Electronic bands, for big matrices.
     """
     return np.array([eigenenergies_sparse(H(k),nbands,Ef) for k in gamma])
 
 
 
+def bands_with_layer_character(H,gamma):
+    """
+    Electronic bands, for small matrices. Calculates the layer character for colormap plots.
+    
+    Also works for big matrices, but may be too slow.
+    """
+    e=[]
+    c1=[]
+    c2=[]
+    N=H(np.zeros(3)).shape[0]//4
+    for k in gamma:
+        ek,psik=eigenstates(H(k).toarray())
+        psik1=psik[0:2*N,:]
+        psik2=psik[2*N::,:]
+        c1k=(np.abs(psik1)**2).sum(axis=0)
+        c2k=(np.abs(psik2)**2).sum(axis=0)
+        e.append(ek)
+        c1.append(c1k)
+        c2.append(c2k)
+    e=np.array(e)
+    c1=np.array(c1)
+    c2=np.array(c2)
+    return e,c1,c2
+
+
+
+def bands_with_layer_character_sparse(H,gamma,nbands,Ef):
+    """
+    Electronic bands, for big matrices. Calculates the layer character for colormap plots.
+    """
+    e=[]
+    c1=[]
+    c2=[]
+    N=H(np.zeros(3)).shape[0]//4
+    for k in gamma:
+        ek,psik=eigenstates_sparse(H(k),nbands,Ef)
+        psik1=psik[0:2*N,:]
+        psik2=psik[2*N::,:]
+        c1k=(np.abs(psik1)**2).sum(axis=1)
+        c2k=(np.abs(psik2)**2).sum(axis=1)
+        e.append(ek)
+        c1.append(c1k)
+        c2.append(c2k)
+    e=np.array(e)
+    c1=np.array(c1)
+    c2=np.array(c2)
+    return e,c1,c2
+    
+
+
 class TwistedBilayerGraphene:
-    def __init__(self,p,q):
+    def __init__(self,p,q,sparse=None):
         """
         Initializes all relevant constant parameters.
         """
@@ -355,10 +423,12 @@ class TwistedBilayerGraphene:
         self.path_GMKG=[Gamma,M[0],K[0],Gamma]
         self.path_KGMKp=[K[0],Gamma,M[1],Kp[1]]
         
-        if p==0 or q==0:
+        if N<=100: #rough estimate
             self._bands=lambda H,gamma,nbands,Ef: bands(H,gamma)
+            self._bands_with_layer_character=lambda H,gamma,nbands,Ef: bands_with_layer_character(H,gamma)
         else:
             self._bands=bands_sparse
+            self._bands_with_layer_character=bands_with_layer_character_sparse
         
         self.theta=theta
         self.N=N
@@ -455,6 +525,14 @@ class TwistedBilayerGraphene:
         
     def calc_bands(self,nbands,Ef):
         """
-        Calcule the electronic bands. Must set hamiltonian (self.set_hamiltonian) and kpath (self.set_kpath) before.
+        Calcule the electronic bands (eigenenergies). Must set hamiltonian (self.set_hamiltonian) and kpath (self.set_kpath) before.
         """
         self.bands=self._bands(self.H,self.gamma,nbands,Ef)
+
+
+    def calc_bands_and_layer_characters(self,nbands,Ef):
+        """
+        Calcule the electronic bands (eigenenergies) *and* eigenfunctions. Must set hamiltonian (self.set_hamiltonian) and kpath (self.set_kpath) before.
+        """
+        self.bands,self.layer1_character,self.layer2_character=self._bands_with_layer_character(self.H,self.gamma,nbands,Ef)
+        
