@@ -157,6 +157,8 @@ def hoppings_onsite(L1,L2,max_distance):
 
 
 
+distances_intra=[x*2.46 for x in [0.01,0.58,1.01,1.16,1.53,1.74,2.01,2.09,2.31]]
+
 def t_intra(x1,y1,x2,y2):
     """
     Intralayer hoppings of graphene.
@@ -169,13 +171,13 @@ def t_intra(x1,y1,x2,y2):
     r=np.sqrt(x**2+y**2)/a
     t=np.zeros_like(r)
     t[(0.3  < r) * (r < 0.8 )] = -2.8922   #1st neighbors = 0.5774
-    # t[(0.8  < r) * (r < 1.1 )] =  0.2425  #2nd neighbors = 1.0
-    # t[(1.1  < r) * (r < 1.3 )] = -0.2656  #3rd neighbors = 1.1547
-    # t[(1.3  < r) * (r < 1.6 )] =  0.0235  #4th neighbors = 1.5275
-    # t[(1.6  < r) * (r < 1.8 )] =  0.0524  #5th neighbors = 1.7321
-    # t[(1.8  < r) * (r < 2.05)] = -0.0209  #6th neighbors = 2.0
-    # t[(2.05 < r) * (r < 2.1 )] = -0.0148  #7th neighbors = 2.0817
-    # t[(2.1  < r) * (r < 2.35)] = -0.0211  #8th neighbors = 2.3094
+    t[(0.8  < r) * (r < 1.1 )] =  0.2425  #2nd neighbors = 1.0
+    t[(1.1  < r) * (r < 1.3 )] = -0.2656  #3rd neighbors = 1.1547
+    t[(1.3  < r) * (r < 1.6 )] =  0.0235  #4th neighbors = 1.5275
+    t[(1.6  < r) * (r < 1.8 )] =  0.0524  #5th neighbors = 1.7321
+    t[(1.8  < r) * (r < 2.05)] = -0.0209  #6th neighbors = 2.0
+    t[(2.05 < r) * (r < 2.1 )] = -0.0148  #7th neighbors = 2.0817
+    t[(2.1  < r) * (r < 2.35)] = -0.0211  #8th neighbors = 2.3094
     return t
 
 
@@ -423,7 +425,7 @@ class TwistedBilayerGraphene:
         self.path_GMKG=[Gamma,M[0],K[0],Gamma]
         self.path_KGMKp=[K[0],Gamma,M[1],Kp[1]]
         
-        if N<=100: #rough estimate
+        if N<=100 and not sparse: #rough estimate
             self._bands=lambda H,gamma,nbands,Ef: bands(H,gamma)
             self._bands_with_layer_character=lambda H,gamma,nbands,Ef: bands_with_layer_character(H,gamma)
         else:
